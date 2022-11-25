@@ -1,16 +1,13 @@
-# This is a sample Python script.
+import pytesseract
+import shutil
+import os
+import random
+try:
+ from PIL import Image
+except ImportError:
+ import Image
 
-# Press Mayús+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+image_path_in_colab = 'Test.jpg'
+extractedInformation = pytesseract.image_to_string(Image.open(image_path_in_colab))
+print(extractedInformation)

@@ -1,19 +1,19 @@
 import pytesseract
-import shutil
-import os
-import random
-
-
-#pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-#image_path_in_colab = 'Test.jpg'
-#extractedInformation = pytesseract.image_to_string(Image.open(image_path_in_colab))
-#print(extractedInformation)
-
 import cv2
 import numpy as np
+try:
+ from PIL import Image
+except ImportError:
+ import Image
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+image_path_in_colab = 'DocEnhanced.jpg'
+extractedInformation = pytesseract.image_to_string(Image.open(image_path_in_colab))
+print(extractedInformation)
+
+
 
 # load image
-img = cv2.imread("Test.jpg")
+img = cv2.imread("Test6.jpg")
 
 # convert to gray
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

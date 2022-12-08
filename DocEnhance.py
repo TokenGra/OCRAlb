@@ -7,15 +7,16 @@ Select the one with maximum area, ( and also somewhat equivalent to square).
 Find the corner points.'''
 
 #Leer imagen y resize
-img = cv2.imread('TestDoc1.jpg')
+img = cv2.imread('Test6.jpg')
 img = cv2.resize(img,[2000,2000])
 
 #Convertir a Gris
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 mask = np.zeros(gray.shape, np.uint8)
 # blur imagen
-
-thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
+clahe = cv2.createCLAHE(clipLimit = 5)
+final_img = clahe.apply(gray)
+thresh = cv2.threshold(final_img, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
 contour,_ = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
 max_area = 0
@@ -67,11 +68,11 @@ trans_img = cv2.warpPerspective(res, M, [maxWidth,maxHeight],flags=cv2.INTER_LIN
 #cv2.imshow('Gris', res)
 #cv2.imshow('Grisd', mask)
 cv2.imshow('',trans_img)
-kernel = np.ones((2, 2), np.uint8)
-trans_img = cv2.erode(trans_img, kernel)
-cv2.imshow('',trans_img)
+'''kernel = np.ones((1, 1), np.uint8)
+trans_img = cv2.erode(trans_img, kernel)'''
 
-cv2.imwrite("DocEnhanced.jpg", trans_img)
+res = cv2.resize(res,[1000,1000])
+cv2.imwrite("DocEnhanced.jpg", res)
 
 cv2.imshow('Gris', res)
 cv2.waitKey(0)

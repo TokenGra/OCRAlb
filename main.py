@@ -1,63 +1,67 @@
 import pytesseract
-import cv2
-import numpy as np
-try:
- from PIL import Image
-except ImportError:
- import Image
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-image_path_in_colab = 'DocEnhanced.jpg'
-extractedInformation = pytesseract.image_to_string(Image.open(image_path_in_colab))
-print(extractedInformation)
+import sys
+from PIL import Image
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(800, 600)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.photo = QtWidgets.QLabel(self.centralwidget)
+        self.photo.setGeometry(QtCore.QRect(0, 0, 841, 511))
+        self.photo.setText("")
+        self.photo.setPixmap(QtGui.QPixmap("DocEnhanced.jpg"))
+        self.photo.setScaledContents(True)
+        self.photo.setObjectName("photo")
+        self.texto = QtWidgets.QPushButton(self.centralwidget)
+        self.texto.setGeometry(QtCore.QRect(0, 510, 411, 41))
+        self.texto.setObjectName("cat")
+        self.imagen = QtWidgets.QPushButton(self.centralwidget)
+        self.imagen.setGeometry(QtCore.QRect(410, 510, 391, 41))
+        self.imagen.setObjectName("dog")
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(MainWindow)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
+        self.menubar.setObjectName("menubar")
+        MainWindow.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+        self.texto.clicked.connect(self.show_texto)
+        self.imagen.clicked.connect(self.show_imagen)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.texto.setText(_translate("MainWindow", "Texto"))
+        self.imagen.setText(_translate("MainWindow", "Imagen"))
+    def show_texto(self):
+        self.photo.setText(open('Transcription.txt').read())
+    def show_imagen(self):
+        self.photo.setPixmap(QtGui.QPixmap("DocEnhanced.jpg"))
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ##ui = Ui_MainWindow()
+    ##ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
+def tesserackWriter():
+   pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+   image_path_in_colab = 'DocEnhanced.jpg'
+   extractedInformation = pytesseract.image_to_string(Image.open(image_path_in_colab))
+   print(extractedInformation)
+   with open('Transcription.txt', 'w') as f:
+       f.write(extractedInformation)
 
 
 
-# load image
-img = cv2.imread("Test6.jpg")
-
-# convert to gray
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-# threshold the grayscale image
-thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-
-# use morphology erode to blur horizontally
-kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (151, 3))
-morph = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, kernel)
-
-# use morphology open to remove thin lines from dotted lines
-kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 17))
-morph = cv2.morphologyEx(morph, cv2.MORPH_OPEN, kernel)
-
-# find contours
-cntrs = cv2.findContours(morph, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-cntrs = cntrs[0] if len(cntrs) == 2 else cntrs[1]
-
-# find the topmost box
-ythresh = 1000000
-for c in cntrs:
-    box = cv2.boundingRect(c)
-    x,y,w,h = box
-    if y < ythresh:
-        topbox = box
-        ythresh = y
-
-# Draw contours excluding the topmost box
-result = img.copy()
-for c in cntrs:
-    box = cv2.boundingRect(c)
-    if box != topbox:
-        x,y,w,h = box
-        cv2.rectangle(result, (x, y), (x+w, y+h), (0, 0, 255), 2)
-
-# write result to disk
-cv2.imwrite("text_above_lines_threshold.png", thresh)
-cv2.imwrite("text_above_lines_morph.png", morph)
-cv2.imwrite("text_above_lines_lines.jpg", result)
-
-#cv2.imshow("GRAY", gray)
-cv2.imshow("THRESH", thresh)
-cv2.imshow("MORPH", morph)
-cv2.imshow("RESULT", result)
-cv2.waitKey(0)
-cv2.destroyAllWindows()

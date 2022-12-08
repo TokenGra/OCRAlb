@@ -1,67 +1,72 @@
-import pytesseract
 import sys
-from PIL import Image
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+import cv2
+import DocEnhance
 
-class Ui_MainWindow(object):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        self.photo = QtWidgets.QLabel(self.centralwidget)
-        self.photo.setGeometry(QtCore.QRect(0, 0, 841, 511))
-        self.photo.setText("")
-        self.photo.setPixmap(QtGui.QPixmap("DocEnhanced.jpg"))
-        self.photo.setScaledContents(True)
-        self.photo.setObjectName("photo")
-        self.texto = QtWidgets.QPushButton(self.centralwidget)
-        self.texto.setGeometry(QtCore.QRect(0, 510, 411, 41))
-        self.texto.setObjectName("cat")
-        self.imagen = QtWidgets.QPushButton(self.centralwidget)
-        self.imagen.setGeometry(QtCore.QRect(410, 510, 391, 41))
-        self.imagen.setObjectName("dog")
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
-        self.menubar.setObjectName("menubar")
-        MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
+frame = None
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+class MainWindow(QWidget):
+    def __init__(self):
+        super(MainWindow, self).__init__()
 
-        self.texto.clicked.connect(self.show_texto)
-        self.imagen.clicked.connect(self.show_imagen)
+        self.VBL = QVBoxLayout()
 
-    def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.texto.setText(_translate("MainWindow", "Texto"))
-        self.imagen.setText(_translate("MainWindow", "Imagen"))
-    def show_texto(self):
-        self.photo.setText(open('Transcription.txt').read())
-    def show_imagen(self):
-        self.photo.setPixmap(QtGui.QPixmap("DocEnhanced.jpg"))
+        #Video Label
+        self.FeedLabel = QLabel()
+        self.VBL.addWidget(self.FeedLabel)
 
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ##ui = Ui_MainWindow()
-    ##ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
-def tesserackWriter():
-   pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-   image_path_in_colab = 'DocEnhanced.jpg'
-   extractedInformation = pytesseract.image_to_string(Image.open(image_path_in_colab))
-   print(extractedInformation)
-   with open('Transcription.txt', 'w') as f:
-       f.write(extractedInformation)
+        #Boton cancelar
+        self.CancelBtn = QPushButton('Cancel')
+        self.CancelBtn.clicked.connect(self.CancelFeed)
+        self.VBL.addWidget(self.CancelBtn)
+
+        #Boton captura
+        self.CapturaBtn = QPushButton('Capturar')
+        self.CapturaBtn.clicked.connect(self.Capture)
+        self.VBL.addWidget(self.CapturaBtn)
+
+        #Actualizador de video
+        self.Worker1 = Worker1()
+        self.Worker1.start()
+        self.Worker1.ImageUpdate.connect(self.ImageUpdateSlot)
+        self.setLayout(self.VBL)
+
+    def ImageUpdateSlot(self, Image):
+        self.FeedLabel.setPixmap(QPixmap.fromImage(Image))
+
+    def CancelFeed(self):
+        self.Worker1.stop()
+        sys.exit(0)
+
+    def Capture(self):
+        self.Worker1.stop()
+        cv2.imshow('Enhanced image', DocEnhance.GetImage(frame))
+
+class Worker1(QThread):
+    ImageUpdate = pyqtSignal(QImage)
+
+    def run(self):
+        self.ThreadActive = True
+        Capture = cv2.VideoCapture('FotosTest/TestVideo.mp4')
+        while self.ThreadActive:
+            global frame
+            ret, frame = Capture.read()
+            if ret:
+                Image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                ConvertToQtFormat = QImage(Image.data, Image.shape[1], Image.shape[0], QImage.Format_RGB888)
+                Pic = ConvertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
+                self.ImageUpdate.emit(Pic)
+        Capture.release()
+
+    def stop(self):
+        self.ThreadActive = False
+        self.quit()
 
 
-
+if __name__ == '__main__':
+    App = QApplication(sys.argv)
+    Root = MainWindow()
+    Root.show()
+    sys.exit(App.exec_())

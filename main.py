@@ -15,7 +15,10 @@ class MainWindow(QWidget):
 
         #Video Label
         self.FeedLabel = QLabel()
+        self.CornerLabel = QLabel()
+
         self.VBL.addWidget(self.FeedLabel)
+        self.VBL.addWidget(self.CornerLabel)
 
         #Boton cancelar
         self.CancelBtn = QPushButton('Cancel')
@@ -31,21 +34,25 @@ class MainWindow(QWidget):
         self.Worker1 = Worker1()
         self.Worker1.start()
         self.Worker1.ImageUpdate.connect(self.ImageUpdateSlot)
+        self.Worker1.LabelUpdate.connect(self.LabelUpdateSlot)
         self.setLayout(self.VBL)
 
     def ImageUpdateSlot(self, Image):
         self.FeedLabel.setPixmap(QPixmap.fromImage(Image))
-
+    def LabelUpdateSlot(self, Text):
+        self.CornerLabel.setText(f'Esquinas : {Text}')
     def CancelFeed(self):
         self.Worker1.stop()
         sys.exit(0)
 
     def Capture(self):
         self.Worker1.stop()
-        cv2.imshow('Enhanced image', DocEnhance.GetImage(frame))
+        img ,_ = DocEnhance.ConversionsWhile(frame)
+        cv2.imshow('Enhanced image', img)
 
 class Worker1(QThread):
     ImageUpdate = pyqtSignal(QImage)
+    LabelUpdate = pyqtSignal(int)
 
     def run(self):
         self.ThreadActive = True
@@ -54,11 +61,12 @@ class Worker1(QThread):
             global frame
             ret, frame = Capture.read()
             if ret:
-                Image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                paintedCorner, esquinas= DocEnhance.ConversionsWhile(frame)
+                Image = cv2.cvtColor(paintedCorner, cv2.COLOR_BGR2RGB)
                 ConvertToQtFormat = QImage(Image.data, Image.shape[1], Image.shape[0], QImage.Format_RGB888)
                 Pic = ConvertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
                 self.ImageUpdate.emit(Pic)
-        Capture.release()
+                self.LabelUpdate.emit(esquinas)
 
     def stop(self):
         self.ThreadActive = False

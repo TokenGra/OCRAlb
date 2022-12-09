@@ -8,13 +8,10 @@ Find the corner points.'''
 
 
 # Leer imagen y resize
-def GetImage(img):
-    img = cv2.resize(img, [2000, 2000])
-    ConversionsWhile(img)
-
 
 def ConversionsWhile(img):
     # Convertir a Gris
+    img = cv2.resize(img, [1000, 1000])
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     mask = np.zeros(gray.shape, np.uint8)
     # blur imagen
@@ -37,47 +34,50 @@ def ConversionsWhile(img):
     cv2.drawContours(mask, [best_cnt], 0, 0, 2)
 
     # Imagen con mascara aplicada
-    res = cv2.bitwise_and(thresh, thresh, mask=mask)
+    res = cv2.bitwise_and(final_img, final_img, mask=mask)
 
-    cv2.addWeighted(res, 1.5, res, -0.5, 0, res);
+    cv2.addWeighted(res, 1.5, res, -0.5, 0, res)
 
     peri = cv2.arcLength(best_cnt, True)
 
     try:
         # LA LINEA PROBLEMATICA
-        corners = (cv2.approxPolyDP(best_cnt, 0.04 * peri, True)).reshape(4, 2)
+        corners = (cv2.approxPolyDP(best_cnt, 0.04 * peri, True))
+        paintedCorners = img.copy()
+        for corner in corners:
+            paintedCorners = cv2.circle(paintedCorners, (corner.min(), corner.max()), radius=10, color=(0, 0, 255), thickness=-1)
+        #.reshape(4, 2)
+        if False == True :
+            # cv2.drawContours(res, [best_cnt], -1, (0,0,255), 1, cv2.LINE_AA)
+            # Perspective transform
 
-        # cv2.drawContours(res, [best_cnt], -1, (0,0,255), 1, cv2.LINE_AA)
+            # Here, I have used L2 norm. You can use L1 also.
+            width_AD = np.sqrt(((corners[0][0] - corners[3][0]) ** 2) + ((corners[0][1] - corners[3][1]) ** 2))
+            width_BC = np.sqrt(((corners[1][0] - corners[2][0]) ** 2) + ((corners[1][1] - corners[2][1]) ** 2))
+            maxWidth = max(int(width_AD), int(width_BC))
 
-        # Perspective transform
+            height_AB = np.sqrt(((corners[0][0] - corners[1][0]) ** 2) + ((corners[0][1] - corners[1][1]) ** 2))
+            height_CD = np.sqrt(((corners[2][0] - corners[3][0]) ** 2) + ((corners[2][1] - corners[3][1]) ** 2))
+            maxHeight = max(int(height_AB), int(height_CD))
 
-        # Here, I have used L2 norm. You can use L1 also.
-        width_AD = np.sqrt(((corners[0][0] - corners[3][0]) ** 2) + ((corners[0][1] - corners[3][1]) ** 2))
-        width_BC = np.sqrt(((corners[1][0] - corners[2][0]) ** 2) + ((corners[1][1] - corners[2][1]) ** 2))
-        maxWidth = max(int(width_AD), int(width_BC))
+            output_pts = np.float32([[0, 0],
+                                     [0, maxHeight - 1],
+                                     [maxWidth - 1, maxHeight - 1],
+                                     [maxWidth - 1, 0]])
+            input_pts = np.float32([corners[0], corners[1], corners[2], corners[3]])
+            M = cv2.getPerspectiveTransform(input_pts, output_pts)
+            trans_img = cv2.warpPerspective(res, M, [maxWidth, maxHeight], flags=cv2.INTER_LINEAR)
 
-        height_AB = np.sqrt(((corners[0][0] - corners[1][0]) ** 2) + ((corners[0][1] - corners[1][1]) ** 2))
-        height_CD = np.sqrt(((corners[2][0] - corners[3][0]) ** 2) + ((corners[2][1] - corners[3][1]) ** 2))
-        maxHeight = max(int(height_AB), int(height_CD))
+            # Mostrar imagenes
+            # cv2.imshow('Imagen', img)
+            # cv2.imshow('Gris', res)
+            # cv2.imshow('Grisd', mask)
+            cv2.imshow('', trans_img)
+            '''kernel = np.ones((1, 1), np.uint8)
+            trans_img = cv2.erode(trans_img, kernel)'''
 
-        output_pts = np.float32([[0, 0],
-                                 [0, maxHeight - 1],
-                                 [maxWidth - 1, maxHeight - 1],
-                                 [maxWidth - 1, 0]])
-        input_pts = np.float32([corners[0], corners[1], corners[2], corners[3]])
-        M = cv2.getPerspectiveTransform(input_pts, output_pts)
-        trans_img = cv2.warpPerspective(res, M, [maxWidth, maxHeight], flags=cv2.INTER_LINEAR)
-
-        # Mostrar imagenes
-        # cv2.imshow('Imagen', img)
-        # cv2.imshow('Gris', res)
-        # cv2.imshow('Grisd', mask)
-        cv2.imshow('', trans_img)
-        '''kernel = np.ones((1, 1), np.uint8)
-        trans_img = cv2.erode(trans_img, kernel)'''
-
-        res = cv2.resize(res, [1000, 1000])
-        return res
+            res = cv2.resize(res, [1000, 1000])
+        return paintedCorners,len(corners)
     except Exception as e:
         print(f'Error : {e}')
         if res is not None:
